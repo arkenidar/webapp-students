@@ -1,15 +1,7 @@
 <?php
 require_once "rb.php";
 
-// Check if the script is running in a web server environment
-// if not from CLI
-if (php_sapi_name() !== 'cli') { // from web server
-    // Set the path to the SQLite database file
-    $databasePath = $_SERVER['DOCUMENT_ROOT'] . '/../database/database.db';
-} else if (php_sapi_name() === 'cli') { // from CLI
-    // Set the path to the SQLite database file
-    $databasePath = __DIR__ . '/../database/database.db';
-}
+$databasePath = __DIR__ . '/../database/database.db';
 
 // Check if the database file exists
 if (!file_exists($databasePath)) {
