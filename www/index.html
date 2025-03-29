@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Management Dashboard - SPA</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Vue.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <!-- Axios for HTTP requests -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        /* Base styles for SPA */
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin: 0;
+            padding: 20px 0;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        h2,
+        h3 {
+            color: #34495e;
+            margin-top: 20px;
+        }
+
+        /* Navigation tabs - always visible at top */
+        .nav-tabs {
+            display: flex;
+            background-color: #34495e;
+            position: sticky;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-tabs button {
+            flex: 1;
+            padding: 15px 20px;
+            font-size: 16px;
+            background: none;
+            border: none;
+            color: #ecf0f1;
+            cursor: pointer;
+            transition: all 0.3s;
+            outline: none;
+        }
+
+        .nav-tabs button:hover {
+            background-color: #2c3e50;
+        }
+
+        .nav-tabs button.active {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* App container with spacing for fixed navigation */
+        .app-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px 40px;
+        }
+
+        /* Tab content */
+        .tab-content {
+            padding: 20px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        /* Form styling */
+        .form-container {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px 5px 5px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        /* List containers */
+        .list-container {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .item-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .item-list li {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .item-list li:last-child {
+            border-bottom: none;
+        }
+
+        .item-list li .actions {
+            display: flex;
+        }
+
+        /* Edit form styling */
+        .edit-form {
+            border-left: 4px solid #3498db;
+        }
+
+        /* Messages */
+        .message {
+            padding: 12px 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        /* Delete button */
+        button.delete-btn {
+            background-color: #e74c3c;
+        }
+
+        button.delete-btn:hover {
+            background-color: #c0392b;
+        }
+
+        /* Loading indicator */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <h1>Management Dashboard</h1>
+
+        <!-- Navigation Tabs - Always Visible -->
+        <div class="nav-tabs">
+            <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id"
+                :class="{ active: activeTab === tab.id }">
+                {{ tab.name }}
+            </button>
+        </div>
+
+        <div class="app-container">
+            <!-- Teachers Tab -->
+            <div v-show="activeTab === 'teachers'" class="tab-content">
+                <h2>Manage Teachers</h2>
+
+                <!-- Add Teacher Form -->
+                <div class="form-container">
+                    <h3>Add a New Teacher</h3>
+                    <form @submit.prevent="addTeacher">
+                        <div class="form-group">
+                            <label for="teacher_name">Teacher Name:</label>
+                            <input type="text" id="teacher_name" v-model="newTeacher.name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="teacher_email">Teacher Email:</label>
+                            <input type="email" id="teacher_email" v-model="newTeacher.email" required>
+                        </div>
+                        <button type="submit">Add Teacher</button>
+                    </form>
+                </div>
+
+                <!-- List Teachers -->
+                <div class="list-container">
+                    <h3>All Teachers</h3>
+                    <div v-if="loading.teachers" class="loading">Loading teachers...</div>
+                    <table v-else>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="teacher in teachers" :key="teacher.id">
+                                <td>{{ teacher.id }}</td>
+                                <td>{{ teacher.name }}</td>
+                                <td>{{ teacher.email }}</td>
+                                <td>
+                                    <button @click="editTeacher(teacher)">Edit</button>
+                                    <button class="delete-btn" @click="deleteTeacher(teacher.id)">Delete</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Edit Teacher Form (conditional rendering) -->
+                <div v-if="editMode.teachers" class="form-container edit-form">
+                    <h3>Edit Teacher</h3>
+                    <form @submit.prevent="updateTeacher">
+                        <div class="form-group">
+                            <label for="edit_teacher_name">Name:</label>
+                            <input type="text" id="edit_teacher_name" v-model="editingTeacher.name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_teacher_email">Email:</label>
+                            <input type="email" id="edit_teacher_email" v-model="editingTeacher.email" required>
+                        </div>
+                        <button type="submit">Update</button>
+                        <button type="button" @click="cancelEdit('teachers')">Cancel</button>
+                    </form>
+                </div>
+
+                <!-- Status Messages -->
+                <div v-if="messages.teachers" :class="['message', messages.teachers.type]">
+                    {{ messages.teachers.text }}
+                </div>
+            </div>
+
+            <!-- Courses Tab -->
+            <div v-show="activeTab === 'courses'" class="tab-content">
+                <h2>Manage Courses and Topics</h2>
+
+                <!-- Add Course Form -->
+                <div class="form-container">
+                    <h3>Add a New Course</h3>
+                    <form @submit.prevent="addCourse">
+                        <div class="form-group">
+                            <label for="course_name">Course Name:</label>
+                            <input type="text" id="course_name" v-model="newCourse.name" required>
+                        </div>
+                        <button type="submit">Create Course</button>
+                    </form>
+                </div>
+
+                <!-- List Courses -->
+                <div class="list-container">
+                    <h3>Edit or Delete Courses</h3>
+                    <div v-if="loading.courses" class="loading">Loading courses...</div>
+                    <ul v-else class="item-list">
+                        <li v-for="course in courses" :key="course.id">
+                            {{ course.name }}
+                            <div class="actions">
+                                <button @click="editCourse(course)">Edit</button>
+                                <button class="delete-btn" @click="deleteCourse(course.id)">Delete</button>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Edit Course Form (conditional rendering) -->
+                <div v-if="editMode.courses" class="form-container edit-form">
+                    <h3>Edit Course</h3>
+                    <form @submit.prevent="updateCourse">
+                        <div class="form-group">
+                            <label for="edit_course_name">Course Name:</label>
+                            <input type="text" id="edit_course_name" v-model="editingCourse.name" required>
+                        </div>
+                        <button type="submit">Update</button>
+                        <button type="button" @click="cancelEdit('courses')">Cancel</button>
+                    </form>
+                </div>
+
+                <!-- Add Topic Form -->
+                <div class="form-container">
+                    <h3>Add a New Topic</h3>
+                    <form @submit.prevent="addTopic">
+                        <div class="form-group">
+                            <label for="topic_course_id">Course:</label>
+                            <select id="topic_course_id" v-model="newTopic.course_id" required>
+                                <option v-for="course in courses" :key="course.id" :value="course.id">
+                                    {{ course.name }}
+                                </option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="topic_title">Topic Title:</label>
+                            <input type="text" id="topic_title" v-model="newTopic.title" required>
+                        </div>
+                        <button type="submit">Add Topic</button>
+                    </form>
+                </div>
+
+                <!-- Topics Overview Table -->
+                <div class="list-container">
+                    <h3>Topics Overview</h3>
+                    <div v-if="loading.topics" class="loading">Loading topics...</div>
+                    <table v-else>
+                        <thead>
+                            <tr>
+                                <th>Topic Title</th>
+                                <th>Course</th>
+                                <th>Teacher</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="topic in topics" :key="topic.id">
+                                <td>{{ topic.title }}</td>
+                                <td>{{ topic.course_name }}</td>
+                                <td>{{ topic.teacher_name || 'Unassigned' }}</td>
+                                <td>
+                                    <button class="delete-btn" @click="deleteTopic(topic.id)">Delete</button>
+                                    <select v-model="topic.teacher_id">
+                                        <option v-for="teacher in teachers" :key="teacher.id" :value="teacher.id">
+                                            {{ teacher.name }}
+                                        </option>
+                                    </select>
+                                    <button @click="assignTeacher(topic.id, topic.teacher_id)">Assign</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Status Messages -->
+                <div v-if="messages.courses" :class="['message', messages.courses.type]">
+                    {{ messages.courses.text }}
+                </div>
+            </div>
+
+            <!-- Students Tab -->
+            <div v-show="activeTab === 'students'" class="tab-content">
+                <h2>Manage Students</h2>
+
+                <!-- Add Student Form -->
+                <div class="form-container">
+                    <h3>Add a New Student</h3>
+                    <form @submit.prevent="addStudent">
+                        <div class="form-group">
+                            <label for="student_name">Student Name:</label>
+                            <input type="text" id="student_name" v-model="newStudent.name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="student_email">Student Email:</label>
+                            <input type="email" id="student_email" v-model="newStudent.email" required>
+                        </div>
+                        <button type="submit">Add Student</button>
+                    </form>
+                </div>
+
+                <!-- List Students -->
+                <div class="list-container">
+                    <h3>Edit or Delete Students</h3>
+                    <div v-if="loading.students" class="loading">Loading students...</div>
+                    <ul v-else class="item-list">
+                        <li v-for="student in students" :key="student.id">
+                            {{ student.name }} ({{ student.email }})
+                            <div class="actions">
+                                <button @click="editStudent(student)">Edit</button>
+                                <button class="delete-btn" @click="deleteStudent(student.id)">Delete</button>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Edit Student Form (conditional rendering) -->
+                <div v-if="editMode.students" class="form-container edit-form">
+                    <h3>Edit Student</h3>
+                    <form @submit.prevent="updateStudent">
+                        <div class="form-group">
+                            <label for="edit_student_name">Name:</label>
+                            <input type="text" id="edit_student_name" v-model="editingStudent.name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_student_email">Email:</label>
+                            <input type="email" id="edit_student_email" v-model="editingStudent.email" required>
+                        </div>
+                        <button type="submit">Update</button>
+                        <button type="button" @click="cancelEdit('students')">Cancel</button>
+                    </form>
+                </div>
+
+                <!-- Subscribe Student to Topic -->
+                <div class="form-container">
+                    <h3>Subscribe a Student to a Topic</h3>
+                    <form @submit.prevent="subscribeStudentToTopic">
+                        <div class="form-group">
+                            <label for="subscription_student_id">Student:</label>
+                            <select id="subscription_student_id" v-model="newSubscription.student_id" required>
+                                <option v-for="student in students" :key="student.id" :value="student.id">
+                                    {{ student.name }}
+                                </option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="subscription_topic_id">Topic:</label>
+                            <select id="subscription_topic_id" v-model="newSubscription.topic_id" required>
+                                <option v-for="topic in topics" :key="topic.id" :value="topic.id">
+                                    {{ topic.title }}
+                                </option>
+                            </select>
+                        </div>
+                        <button type="submit">Subscribe</button>
+                    </form>
+                </div>
+
+                <!-- View Students of a Topic -->
+                <div class="form-container">
+                    <h3>Manage Students of a Topic</h3>
+                    <form @submit.prevent="viewStudentsOfTopic">
+                        <div class="form-group">
+                            <label for="view_topic_id">Topic:</label>
+                            <select id="view_topic_id" v-model="selectedTopicId" required>
+                                <option v-for="topic in topics" :key="topic.id" :value="topic.id">
+                                    {{ topic.title }}
+                                </option>
+                            </select>
+                        </div>
+                        <button type="submit">View Students</button>
+                    </form>
+                </div>
+
+                <!-- Students of Selected Topic -->
+                <div v-if="topicStudents.length > 0" class="list-container">
+                    <h3>Students Subscribed to Topic: {{ selectedTopicName }}</h3>
+                    <ul class="item-list">
+                        <li v-for="student in topicStudents" :key="student.id">
+                            {{ student.name }} ({{ student.email }})
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Status Messages -->
+                <div v-if="messages.students" :class="['message', messages.students.type]">
+                    {{ messages.students.text }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Base URL
+        const API_URL = 'api.php';
+
+        // Initialize Vue Application
+        new Vue({
+            el: '#app',
+            data: {
+                // Navigation
+                activeTab: 'teachers',
+                tabs: [
+                    { id: 'teachers', name: 'Teachers' },
+                    { id: 'courses', name: 'Courses & Topics' },
+                    { id: 'students', name: 'Students' }
+                ],
+
+                // Data collections
+                teachers: [],
+                courses: [],
+                topics: [],
+                students: [],
+                topicStudents: [],
+
+                // New item models
+                newTeacher: { name: '', email: '' },
+                newCourse: { name: '' },
+                newTopic: { title: '', course_id: '' },
+                newStudent: { name: '', email: '' },
+                newSubscription: { student_id: '', topic_id: '' },
+
+                // Edit mode flags and models
+                editMode: { teachers: false, courses: false, students: false },
+                editingTeacher: { id: null, name: '', email: '' },
+                editingCourse: { id: null, name: '' },
+                editingStudent: { id: null, name: '', email: '' },
+
+                // Topic selection for viewing students
+                selectedTopicId: '',
+                selectedTopicName: '',
+
+                // UI state
+                loading: {
+                    teachers: false,
+                    courses: false,
+                    topics: false,
+                    students: false
+                },
+
+                // Message handling
+                messages: {
+                    teachers: null,
+                    courses: null,
+                    students: null
+                }
+            },
+
+            // Lifecycle hooks
+            mounted() {
+                // Load all data when component mounts
+                this.fetchTeachers();
+                this.fetchCourses();
+                this.fetchTopics();
+                this.fetchStudents();
+
+                // Check for URL hash to set active tab
+                const hash = window.location.hash.substring(1);
+                if (hash && this.tabs.some(tab => tab.id === hash)) {
+                    this.activeTab = hash;
+                }
+            },
+
+            watch: {
+                // Update URL hash when tab changes
+                activeTab(newTab) {
+                    window.location.hash = newTab;
+                }
+            },
+
+            methods: {
+                // ===== API Communication Methods =====
+
+                // Generic API request method
+                async apiRequest(method, endpoint, data = null) {
+                    try {
+                        let config = {
+                            method: method,
+                            url: `${API_URL}?action=${endpoint}`,
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        };
+
+                        if (data) {
+                            if (method === 'get') {
+                                config.params = data;
+                            } else {
+                                config.data = data;
+                            }
+                        }
+
+                        const response = await axios(config);
+                        return response.data;
+                    } catch (error) {
+                        console.error(`API Error (${endpoint}):`, error);
+                        throw error;
+                    }
+                },
+
+                // ===== Teacher Methods =====
+
+                // Fetch all teachers
+                async fetchTeachers() {
+                    this.loading.teachers = true;
+                    try {
+                        const response = await this.apiRequest('get', 'getTeachers');
+                        this.teachers = response.data;
+                    } catch (error) {
+                        this.showMessage('teachers', 'Error loading teachers', 'error');
+                    } finally {
+                        this.loading.teachers = false;
+                    }
+                },
+
+                // Add a new teacher
+                async addTeacher() {
+                    try {
+                        await this.apiRequest('post', 'addTeacher', this.newTeacher);
+                        this.showMessage('teachers', 'Teacher added successfully', 'success');
+                        this.newTeacher = { name: '', email: '' };
+                        this.fetchTeachers();
+                    } catch (error) {
+                        this.showMessage('teachers', 'Error adding teacher', 'error');
+                    }
+                },
+
+                // Edit teacher (prepare form)
+                editTeacher(teacher) {
+                    this.editingTeacher = { ...teacher };
+                    this.editMode.teachers = true;
+                },
+
+                // Update teacher
+                async updateTeacher() {
+                    try {
+                        await this.apiRequest('put', 'updateTeacher', this.editingTeacher);
+                        this.showMessage('teachers', 'Teacher updated successfully', 'success');
+                        this.cancelEdit('teachers');
+                        this.fetchTeachers();
+                    } catch (error) {
+                        this.showMessage('teachers', 'Error updating teacher', 'error');
+                    }
+                },
+
+                // Delete teacher
+                async deleteTeacher(id) {
+                    if (confirm('Are you sure you want to delete this teacher?')) {
+                        try {
+                            await this.apiRequest('delete', 'deleteTeacher', { id });
+                            this.showMessage('teachers', 'Teacher deleted successfully', 'success');
+                            this.fetchTeachers();
+                            this.fetchTopics(); // Refresh topics to update teacher assignments
+                        } catch (error) {
+                            this.showMessage('teachers', 'Error deleting teacher', 'error');
+                        }
+                    }
+                },
+
+                // ===== Course Methods =====
+
+                // Fetch all courses
+                async fetchCourses() {
+                    this.loading.courses = true;
+                    try {
+                        const response = await this.apiRequest('get', 'getCourses');
+                        this.courses = response.data;
+                        // Set default course_id for new topics if courses exist
+                        if (this.courses.length > 0 && !this.newTopic.course_id) {
+                            this.newTopic.course_id = this.courses[0].id;
+                        }
+                    } catch (error) {
+                        this.showMessage('courses', 'Error loading courses', 'error');
+                    } finally {
+                        this.loading.courses = false;
+                    }
+                },
+
+                // Add a new course
+                async addCourse() {
+                    try {
+                        await this.apiRequest('post', 'addCourse', this.newCourse);
+                        this.showMessage('courses', 'Course added successfully', 'success');
+                        this.newCourse = { name: '' };
+                        this.fetchCourses();
+                    } catch (error) {
+                        this.showMessage('courses', 'Error adding course', 'error');
+                    }
+                },
+
+                // Edit course (prepare form)
+                editCourse(course) {
+                    this.editingCourse = { ...course };
+                    this.editMode.courses = true;
+                },
+
+                // Update course
+                async updateCourse() {
+                    try {
+                        await this.apiRequest('put', 'updateCourse', this.editingCourse);
+                        this.showMessage('courses', 'Course updated successfully', 'success');
+                        this.cancelEdit('courses');
+                        this.fetchCourses();
+                        this.fetchTopics(); // Refresh topics to update course names
+                    } catch (error) {
+                        this.showMessage('courses', 'Error updating course', 'error');
+                    }
+                },
+
+                // Delete course
+                async deleteCourse(id) {
+                    if (confirm('Are you sure you want to delete this course? All associated topics will also be deleted.')) {
+                        try {
+                            await this.apiRequest('delete', 'deleteCourse', { id });
+                            this.showMessage('courses', 'Course deleted successfully', 'success');
+                            this.fetchCourses();
+                            this.fetchTopics(); // Refresh topics list after deletion
+                        } catch (error) {
+                            this.showMessage('courses', 'Error deleting course', 'error');
+                        }
+                    }
+                },
+
+                // ===== Topic Methods =====
+
+                // Fetch all topics
+                async fetchTopics() {
+                    this.loading.topics = true;
+                    try {
+                        const response = await this.apiRequest('get', 'getTopics');
+                        this.topics = response.data;
+                        // Set default topic_id for subscriptions if topics exist
+                        if (this.topics.length > 0 && !this.newSubscription.topic_id) {
+                            this.newSubscription.topic_id = this.topics[0].id;
+                        }
+                        // Set default topic for viewing students if topics exist
+                        if (this.topics.length > 0 && !this.selectedTopicId) {
+                            this.selectedTopicId = this.topics[0].id;
+                        }
+                    } catch (error) {
+                        this.showMessage('courses', 'Error loading topics', 'error');
+                    } finally {
+                        this.loading.topics = false;
+                    }
+                },
+
+                // Add a new topic
+                async addTopic() {
+                    try {
+                        await this.apiRequest('post', 'addTopic', this.newTopic);
+                        this.showMessage('courses', 'Topic added successfully', 'success');
+                        this.newTopic = { title: '', course_id: this.courses.length > 0 ? this.courses[0].id : '' };
+                        this.fetchTopics();
+                    } catch (error) {
+                        this.showMessage('courses', 'Error adding topic', 'error');
+                    }
+                },
+
+                // Delete topic
+                async deleteTopic(id) {
+                    if (confirm('Are you sure you want to delete this topic?')) {
+                        try {
+                            await this.apiRequest('delete', 'deleteTopic', { id });
+                            this.showMessage('courses', 'Topic deleted successfully', 'success');
+                            this.fetchTopics();
+                        } catch (error) {
+                            this.showMessage('courses', 'Error deleting topic', 'error');
+                        }
+                    }
+                },
+
+                // Assign a teacher to a topic
+                async assignTeacher(topicId, teacherId) {
+                    try {
+                        await this.apiRequest('put', 'assignTeacher', { topic_id: topicId, teacher_id: teacherId });
+                        this.showMessage('courses', 'Teacher assigned successfully', 'success');
+                        this.fetchTopics();
+                    } catch (error) {
+                        this.showMessage('courses', 'Error assigning teacher', 'error');
+                    }
+                },
+
+                // ===== Student Methods =====
+
+                // Fetch all students
+                async fetchStudents() {
+                    this.loading.students = true;
+                    try {
+                        const response = await this.apiRequest('get', 'getStudents');
+                        this.students = response.data;
+                        // Set default student_id for subscriptions if students exist
+                        if (this.students.length > 0 && !this.newSubscription.student_id) {
+                            this.newSubscription.student_id = this.students[0].id;
+                        }
+                    } catch (error) {
+                        this.showMessage('students', 'Error loading students', 'error');
+                    } finally {
+                        this.loading.students = false;
+                    }
+                },
+
+                // Add a new student
+                async addStudent() {
+                    try {
+                        await this.apiRequest('post', 'addStudent', this.newStudent);
+                        this.showMessage('students', 'Student added successfully', 'success');
+                        this.newStudent = { name: '', email: '' };
+                        this.fetchStudents();
+                    } catch (error) {
+                        this.showMessage('students', 'Error adding student', 'error');
+                    }
+                },
+
+                // Edit student (prepare form)
+                editStudent(student) {
+                    this.editingStudent = { ...student };
+                    this.editMode.students = true;
+                },
+
+                // Update student
+                async updateStudent() {
+                    try {
+                        await this.apiRequest('put', 'updateStudent', this.editingStudent);
+                        this.showMessage('students', 'Student updated successfully', 'success');
+                        this.cancelEdit('students');
+                        this.fetchStudents();
+
+                        // If we're viewing topic students, refresh that view too
+                        if (this.selectedTopicId && this.topicStudents.length > 0) {
+                            this.viewStudentsOfTopic();
+                        }
+                    } catch (error) {
+                        this.showMessage('students', 'Error updating student', 'error');
+                    }
+                },
+
+                // Delete student
+                async deleteStudent(id) {
+                    if (confirm('Are you sure you want to delete this student?')) {
+                        try {
+                            await this.apiRequest('delete', 'deleteStudent', { id });
+                            this.showMessage('students', 'Student deleted successfully', 'success');
+                            this.fetchStudents();
+
+                            // If we're viewing topic students, refresh that view too
+                            if (this.selectedTopicId && this.topicStudents.length > 0) {
+                                this.viewStudentsOfTopic();
+                            }
+                        } catch (error) {
+                            this.showMessage('students', 'Error deleting student', 'error');
+                        }
+                    }
+                },
+
+                // Subscribe a student to a topic
+                async subscribeStudentToTopic() {
+                    try {
+                        await this.apiRequest('post', 'subscribeStudentToTopic', this.newSubscription);
+                        this.showMessage('students', 'Student subscribed to topic successfully', 'success');
+
+                        // If we're viewing the same topic, refresh the view
+                        if (this.selectedTopicId === this.newSubscription.topic_id) {
+                            this.viewStudentsOfTopic();
+                        }
+                    } catch (error) {
+                        this.showMessage('students', 'Error subscribing student to topic', 'error');
+                    }
+                },
+
+                // View students of a topic
+                async viewStudentsOfTopic() {
+                    if (!this.selectedTopicId) return;
+
+                    try {
+                        const response = await this.apiRequest('get', 'getTopicStudents', { topic_id: this.selectedTopicId });
+                        this.topicStudents = response.data;
+
+                        // Find the topic name
+                        const topic = this.topics.find(t => t.id === this.selectedTopicId);
+                        this.selectedTopicName = topic ? topic.title : '';
+                    } catch (error) {
+                        this.showMessage('students', 'Error loading topic students', 'error');
+                        this.topicStudents = [];
+                    }
+                },
+
+                // ===== UI Helper Methods =====
+
+                // Cancel edit mode
+                cancelEdit(section) {
+                    this.editMode[section] = false;
+
+                    // Reset editing models
+                    if (section === 'teachers') {
+                        this.editingTeacher = { id: null, name: '', email: '' };
+                    } else if (section === 'courses') {
+                        this.editingCourse = { id: null, name: '' };
+                    } else if (section === 'students') {
+                        this.editingStudent = { id: null, name: '', email: '' };
+                    }
+                },
+
+                // Show message with auto-dismiss
+                showMessage(section, text, type) {
+                    this.messages[section] = { text, type };
+
+                    // Auto-dismiss after 3 seconds
+                    setTimeout(() => {
+                        if (this.messages[section] && this.messages[section].text === text) {
+                            this.messages[section] = null;
+                        }
+                    }, 3000);
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
