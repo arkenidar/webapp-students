@@ -231,21 +231,24 @@
 
         <!-- Simple navigation tabs -->
         <div class="nav-tabs">
-            <a href="javascript:void(0)" @click="setActiveTab('teachers')" :class="{ active: activeTab === 'teachers' }">Teachers</a>
-            <a href="javascript:void(0)" @click="setActiveTab('courses')" :class="{ active: activeTab === 'courses' }">Courses & Topics</a>
-            <a href="javascript:void(0)" @click="setActiveTab('students')" :class="{ active: activeTab === 'students' }">Students</a>
+            <a href="javascript:void(0)" @click="setActiveTab('teachers')"
+                :class="{ active: activeTab === 'teachers' }">Teachers</a>
+            <a href="javascript:void(0)" @click="setActiveTab('courses')"
+                :class="{ active: activeTab === 'courses' }">Courses & Topics</a>
+            <a href="javascript:void(0)" @click="setActiveTab('students')"
+                :class="{ active: activeTab === 'students' }">Students</a>
         </div>
 
         <div class="app-container">
             <!-- Teachers Tab Content -->
             <div v-show="activeTab === 'teachers'" class="tab-content">
                 <h2>Manage Teachers</h2>
-                
+
                 <!-- Message display -->
                 <div v-if="teacherState.message" class="message" :class="teacherState.message.type">
                     {{ teacherState.message.text }}
                 </div>
-                
+
                 <!-- Add Teacher Form -->
                 <div class="form-container">
                     <h3>Add New Teacher</h3>
@@ -255,11 +258,12 @@
                     </div>
                     <div class="form-group">
                         <label for="teacherEmail">Email:</label>
-                        <input id="teacherEmail" type="email" v-model="teacherState.newTeacher.email" placeholder="Email Address" />
+                        <input id="teacherEmail" type="email" v-model="teacherState.newTeacher.email"
+                            placeholder="Email Address" />
                     </div>
                     <button @click="addTeacher">Add Teacher</button>
                 </div>
-                
+
                 <!-- Edit Teacher Form (conditionally shown) -->
                 <div class="form-container edit-form" v-if="teacherState.editMode">
                     <h3>Edit Teacher</h3>
@@ -274,7 +278,7 @@
                     <button @click="updateTeacher">Save Changes</button>
                     <button @click="cancelEditTeacher">Cancel</button>
                 </div>
-                
+
                 <!-- Teachers List -->
                 <div class="list-container">
                     <h3>Existing Teachers</h3>
@@ -307,12 +311,12 @@
             <!-- Courses Tab Content -->
             <div v-show="activeTab === 'courses'" class="tab-content">
                 <h2>Manage Courses & Topics</h2>
-                
+
                 <!-- Message display -->
                 <div v-if="courseState.message" class="message" :class="courseState.message.type">
                     {{ courseState.message.text }}
                 </div>
-                
+
                 <!-- Add Course Form -->
                 <div class="form-container">
                     <h3>Add New Course</h3>
@@ -322,7 +326,7 @@
                     </div>
                     <button @click="addCourse">Add Course</button>
                 </div>
-                
+
                 <!-- Edit Course Form (conditionally shown) -->
                 <div class="form-container edit-form" v-if="courseState.editMode">
                     <h3>Edit Course</h3>
@@ -333,7 +337,7 @@
                     <button @click="updateCourse">Save Changes</button>
                     <button @click="cancelEditCourse">Cancel</button>
                 </div>
-                
+
                 <!-- Courses List -->
                 <div class="list-container">
                     <h3>Existing Courses</h3>
@@ -359,7 +363,7 @@
                         </tbody>
                     </table>
                 </div>
-                
+
                 <!-- Add Topic Form -->
                 <div class="form-container">
                     <h3>Add New Topic</h3>
@@ -369,7 +373,8 @@
                     </div>
                     <div class="form-group">
                         <label for="topicCourse">Course:</label>
-                        <select id="topicCourse" v-model="courseState.newTopic.course_id" aria-label="Select course for topic">
+                        <select id="topicCourse" v-model="courseState.newTopic.course_id"
+                            aria-label="Select course for topic">
                             <option v-for="course in courseState.courses" :key="course.id" :value="course.id">
                                 {{ course.name }}
                             </option>
@@ -377,7 +382,7 @@
                     </div>
                     <button @click="addTopic" :disabled="courseState.courses.length === 0">Add Topic</button>
                 </div>
-                
+
                 <!-- Topics List -->
                 <div class="list-container">
                     <h3>Existing Topics</h3>
@@ -397,9 +402,10 @@
                                 <td>{{ topic.course_name }}</td>
                                 <td>
                                     <select v-model="topic.teacher_id" aria-label="Assign teacher to topic"
-                                            @change="assignTeacher(topic.id, topic.teacher_id)">
+                                        @change="assignTeacher(topic.id, topic.teacher_id)">
                                         <option value="">-- Unassigned --</option>
-                                        <option v-for="teacher in teacherState.teachers" :key="teacher.id" :value="teacher.id">
+                                        <option v-for="teacher in teacherState.teachers" :key="teacher.id"
+                                            :value="teacher.id">
                                             {{ teacher.name }}
                                         </option>
                                     </select>
@@ -419,12 +425,12 @@
             <!-- Students Tab Content -->
             <div v-show="activeTab === 'students'" class="tab-content">
                 <h2>Manage Students</h2>
-                
+
                 <!-- Message display -->
                 <div v-if="studentState.message" class="message" :class="studentState.message.type">
                     {{ studentState.message.text }}
                 </div>
-                
+
                 <!-- Add Student Form -->
                 <div class="form-container">
                     <h3>Add New Student</h3>
@@ -434,11 +440,12 @@
                     </div>
                     <div class="form-group">
                         <label for="studentEmail">Email:</label>
-                        <input id="studentEmail" type="email" v-model="studentState.newStudent.email" placeholder="Email Address" />
+                        <input id="studentEmail" type="email" v-model="studentState.newStudent.email"
+                            placeholder="Email Address" />
                     </div>
                     <button @click="addStudent">Add Student</button>
                 </div>
-                
+
                 <!-- Edit Student Form (conditionally shown) -->
                 <div class="form-container edit-form" v-if="studentState.editMode">
                     <h3>Edit Student</h3>
@@ -453,7 +460,7 @@
                     <button @click="updateStudent">Save Changes</button>
                     <button @click="cancelEditStudent">Cancel</button>
                 </div>
-                
+
                 <!-- Students List -->
                 <div class="list-container">
                     <h3>All Students</h3>
@@ -545,13 +552,13 @@
             setup() {
                 // Tab state - changed from reactive object to ref
                 const activeTab = ref('teachers');
-                
+
                 // Set active tab and update URL
                 const setActiveTab = (tab) => {
                     activeTab.value = tab;
                     window.location.hash = '#/' + tab;
                 };
-                
+
                 // Teacher state
                 const teacherState = reactive({
                     teachers: [],
@@ -561,7 +568,7 @@
                     editMode: false,
                     editingTeacher: { id: null, name: '', email: '' }
                 });
-                
+
                 // Course state
                 const courseState = reactive({
                     courses: [],
@@ -576,7 +583,7 @@
                     editMode: false,
                     editingCourse: { id: null, name: '' }
                 });
-                
+
                 // Student state
                 const studentState = reactive({
                     students: [],
@@ -590,7 +597,7 @@
                     selectedTopicId: '',
                     selectedTopicName: ''
                 });
-                
+
                 // Teacher actions
                 const fetchTeachers = async () => {
                     teacherState.loading = true;
@@ -603,7 +610,7 @@
                         teacherState.loading = false;
                     }
                 };
-                
+
                 const addTeacher = async () => {
                     try {
                         await apiRequest('POST', 'addTeacher', teacherState.newTeacher);
@@ -615,14 +622,14 @@
                         showMessage(teacherState, 'Error adding teacher', 'error');
                     }
                 };
-                
+
                 const editTeacher = (teacher) => {
                     teacherState.editingTeacher.id = teacher.id;
                     teacherState.editingTeacher.name = teacher.name;
                     teacherState.editingTeacher.email = teacher.email;
                     teacherState.editMode = true;
                 };
-                
+
                 const updateTeacher = async () => {
                     try {
                         await apiRequest('PUT', 'updateTeacher', teacherState.editingTeacher);
@@ -633,7 +640,7 @@
                         showMessage(teacherState, 'Error updating teacher', 'error');
                     }
                 };
-                
+
                 const deleteTeacher = async (id) => {
                     if (confirm('Are you sure you want to delete this teacher?')) {
                         try {
@@ -647,12 +654,12 @@
                         }
                     }
                 };
-                
+
                 const cancelEditTeacher = () => {
                     teacherState.editMode = false;
                     teacherState.editingTeacher = { id: null, name: '', email: '' };
                 };
-                
+
                 // Course actions
                 const fetchCourses = async () => {
                     courseState.loading.courses = true;
@@ -669,7 +676,7 @@
                         courseState.loading.courses = false;
                     }
                 };
-                
+
                 const fetchTopics = async () => {
                     courseState.loading.topics = true;
                     try {
@@ -681,7 +688,7 @@
                         courseState.loading.topics = false;
                     }
                 };
-                
+
                 const addCourse = async () => {
                     try {
                         await apiRequest('POST', 'addCourse', courseState.newCourse);
@@ -692,13 +699,13 @@
                         showMessage(courseState, 'Error adding course', 'error');
                     }
                 };
-                
+
                 const editCourse = (course) => {
                     courseState.editingCourse.id = course.id;
                     courseState.editingCourse.name = course.name;
                     courseState.editMode = true;
                 };
-                
+
                 const updateCourse = async () => {
                     try {
                         await apiRequest('PUT', 'updateCourse', courseState.editingCourse);
@@ -710,7 +717,7 @@
                         showMessage(courseState, 'Error updating course', 'error');
                     }
                 };
-                
+
                 const deleteCourse = async (id) => {
                     if (confirm('Are you sure you want to delete this course? All associated topics will also be deleted.')) {
                         try {
@@ -723,7 +730,7 @@
                         }
                     }
                 };
-                
+
                 const addTopic = async () => {
                     try {
                         await apiRequest('POST', 'addTopic', courseState.newTopic);
@@ -735,7 +742,7 @@
                         showMessage(courseState, 'Error adding topic', 'error');
                     }
                 };
-                
+
                 const deleteTopic = async (id) => {
                     if (confirm('Are you sure you want to delete this topic?')) {
                         try {
@@ -747,7 +754,7 @@
                         }
                     }
                 };
-                
+
                 const assignTeacher = async (topicId, teacherId) => {
                     try {
                         await apiRequest('PUT', 'assignTeacher', { topic_id: topicId, teacher_id: teacherId });
@@ -757,12 +764,12 @@
                         showMessage(courseState, 'Error assigning teacher', 'error');
                     }
                 };
-                
+
                 const cancelEditCourse = () => {
                     courseState.editMode = false;
                     courseState.editingCourse = { id: null, name: '' };
                 };
-                
+
                 // Student actions
                 const fetchStudents = async () => {
                     studentState.loading = true;
@@ -779,7 +786,7 @@
                         studentState.loading = false;
                     }
                 };
-                
+
                 const addStudent = async () => {
                     try {
                         await apiRequest('POST', 'addStudent', studentState.newStudent);
@@ -791,14 +798,14 @@
                         showMessage(studentState, 'Error adding student', 'error');
                     }
                 };
-                
+
                 const editStudent = (student) => {
                     studentState.editingStudent.id = student.id;
                     studentState.editingStudent.name = student.name;
                     studentState.editingStudent.email = student.email;
                     studentState.editMode = true;
                 };
-                
+
                 const updateStudent = async () => {
                     try {
                         await apiRequest('PUT', 'updateStudent', studentState.editingStudent);
@@ -809,7 +816,7 @@
                         showMessage(studentState, 'Error updating student', 'error');
                     }
                 };
-                
+
                 const deleteStudent = async (id) => {
                     if (confirm('Are you sure you want to delete this student?')) {
                         try {
@@ -821,19 +828,19 @@
                         }
                     }
                 };
-                
+
                 const cancelEditStudent = () => {
                     studentState.editMode = false;
                     studentState.editingStudent = { id: null, name: '', email: '' };
                 };
-                
+
                 // Initialize data
                 onMounted(() => {
                     fetchTeachers();
                     fetchCourses();
                     fetchTopics();
                     fetchStudents();
-                    
+
                     // Set initial tab based on URL hash if present
                     const hash = window.location.hash;
                     if (hash.includes('teachers')) {
@@ -844,21 +851,21 @@
                         activeTab.value = 'students';
                     }
                 });
-                
+
                 return {
                     activeTab,
                     setActiveTab,
                     teacherState,
                     courseState,
                     studentState,
-                    
+
                     // Teacher methods
                     addTeacher,
                     editTeacher,
                     updateTeacher,
                     deleteTeacher,
                     cancelEditTeacher,
-                    
+
                     // Course methods
                     addCourse,
                     editCourse,
@@ -868,7 +875,7 @@
                     addTopic,
                     deleteTopic,
                     assignTeacher,
-                    
+
                     // Student methods
                     addStudent,
                     editStudent,
@@ -878,7 +885,7 @@
                 };
             }
         });
-        
+
         // Mount app
         app.mount('#app');
     </script>
