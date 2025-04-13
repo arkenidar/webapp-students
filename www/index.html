@@ -6,8 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Management Dashboard - SPA</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- Vue.js from CDN - Updated to Vue 3 -->
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Vue.js from CDN - Latest version -->
+    <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.js"></script>
+    <!-- Vue Router from CDN - Latest version -->
+    <script src="https://unpkg.com/vue-router@4.3.0/dist/vue-router.global.js"></script>
     <style>
         /* Base styles for SPA */
         body {
@@ -225,294 +227,18 @@
     <div id="app">
         <h1>Management Dashboard</h1>
 
-        <!-- Navigation Tabs - Always Visible -->
+        <!-- Navigation using Vue Router -->
         <div class="nav-tabs">
-            <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id"
-                :class="{ active: activeTab === tab.id }">
-                {{ tab.name }}
-            </button>
+            <router-link v-for="route in routes" :key="route.path" :to="route.path" custom
+                v-slot="{ navigate, isActive }">
+                <button @click="navigate" :class="{ active: isActive }">
+                    {{ route.name }}
+                </button>
+            </router-link>
         </div>
 
         <div class="app-container">
-            <!-- Teachers Tab -->
-            <div v-show="activeTab === 'teachers'" class="tab-content">
-                <h2>Manage Teachers</h2>
-
-                <!-- Add Teacher Form -->
-                <div class="form-container">
-                    <h3>Add a New Teacher</h3>
-                    <form @submit.prevent="addTeacher">
-                        <div class="form-group">
-                            <label for="teacher_name">Teacher Name:</label>
-                            <input type="text" id="teacher_name" v-model="newTeacher.name" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="teacher_email">Teacher Email:</label>
-                            <input type="email" id="teacher_email" v-model="newTeacher.email" required>
-                        </div>
-                        <button type="submit">Add Teacher</button>
-                    </form>
-                </div>
-
-                <!-- List Teachers -->
-                <div class="list-container">
-                    <h3>All Teachers</h3>
-                    <div v-if="loading.teachers" class="loading">Loading teachers...</div>
-                    <table v-else>
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="teacher in teachers" :key="teacher.id">
-                                <td>{{ teacher.id }}</td>
-                                <td>{{ teacher.name }}</td>
-                                <td>{{ teacher.email }}</td>
-                                <td>
-                                    <button @click="editTeacher(teacher)">Edit</button>
-                                    <button class="delete-btn" @click="deleteTeacher(teacher.id)">Delete</button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Edit Teacher Form (conditional rendering) -->
-                <div v-if="editMode.teachers" class="form-container edit-form">
-                    <h3>Edit Teacher</h3>
-                    <form @submit.prevent="updateTeacher">
-                        <div class="form-group">
-                            <label for="edit_teacher_name">Name:</label>
-                            <input type="text" id="edit_teacher_name" v-model="editingTeacher.name" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="edit_teacher_email">Email:</label>
-                            <input type="email" id="edit_teacher_email" v-model="editingTeacher.email" required>
-                        </div>
-                        <button type="submit">Update</button>
-                        <button type="button" @click="cancelEdit('teachers')">Cancel</button>
-                    </form>
-                </div>
-
-                <!-- Status Messages -->
-                <div v-if="messages.teachers" :class="['message', messages.teachers.type]">
-                    {{ messages.teachers.text }}
-                </div>
-            </div>
-
-            <!-- Courses Tab -->
-            <div v-show="activeTab === 'courses'" class="tab-content">
-                <h2>Manage Courses and Topics</h2>
-
-                <!-- Add Course Form -->
-                <div class="form-container">
-                    <h3>Add a New Course</h3>
-                    <form @submit.prevent="addCourse">
-                        <div class="form-group">
-                            <label for="course_name">Course Name:</label>
-                            <input type="text" id="course_name" v-model="newCourse.name" required>
-                        </div>
-                        <button type="submit">Create Course</button>
-                    </form>
-                </div>
-
-                <!-- List Courses -->
-                <div class="list-container">
-                    <h3>Edit or Delete Courses</h3>
-                    <div v-if="loading.courses" class="loading">Loading courses...</div>
-                    <ul v-else class="item-list">
-                        <li v-for="course in courses" :key="course.id">
-                            {{ course.name }}
-                            <div class="actions">
-                                <button @click="editCourse(course)">Edit</button>
-                                <button class="delete-btn" @click="deleteCourse(course.id)">Delete</button>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Edit Course Form (conditional rendering) -->
-                <div v-if="editMode.courses" class="form-container edit-form">
-                    <h3>Edit Course</h3>
-                    <form @submit.prevent="updateCourse">
-                        <div class="form-group">
-                            <label for="edit_course_name">Course Name:</label>
-                            <input type="text" id="edit_course_name" v-model="editingCourse.name" required>
-                        </div>
-                        <button type="submit">Update</button>
-                        <button type="button" @click="cancelEdit('courses')">Cancel</button>
-                    </form>
-                </div>
-
-                <!-- Add Topic Form -->
-                <div class="form-container">
-                    <h3>Add a New Topic</h3>
-                    <form @submit.prevent="addTopic">
-                        <div class="form-group">
-                            <label for="topic_course_id">Course:</label>
-                            <select id="topic_course_id" v-model="newTopic.course_id" required>
-                                <option v-for="course in courses" :key="course.id" :value="course.id">
-                                    {{ course.name }}
-                                </option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="topic_title">Topic Title:</label>
-                            <input type="text" id="topic_title" v-model="newTopic.title" required>
-                        </div>
-                        <button type="submit">Add Topic</button>
-                    </form>
-                </div>
-
-                <!-- Topics Overview Table -->
-                <div class="list-container">
-                    <h3>Topics Overview</h3>
-                    <div v-if="loading.topics" class="loading">Loading topics...</div>
-                    <table v-else>
-                        <thead>
-                            <tr>
-                                <th>Topic Title</th>
-                                <th>Course</th>
-                                <th>Teacher</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="topic in topics" :key="topic.id">
-                                <td>{{ topic.title }}</td>
-                                <td>{{ topic.course_name }}</td>
-                                <td>{{ topic.teacher_name || 'Unassigned' }}</td>
-                                <td>
-                                    <button class="delete-btn" @click="deleteTopic(topic.id)">Delete</button>
-                                    <select v-model="topic.teacher_id">
-                                        <option v-for="teacher in teachers" :key="teacher.id" :value="teacher.id">
-                                            {{ teacher.name }}
-                                        </option>
-                                    </select>
-                                    <button @click="assignTeacher(topic.id, topic.teacher_id)">Assign</button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Status Messages -->
-                <div v-if="messages.courses" :class="['message', messages.courses.type]">
-                    {{ messages.courses.text }}
-                </div>
-            </div>
-
-            <!-- Students Tab -->
-            <div v-show="activeTab === 'students'" class="tab-content">
-                <h2>Manage Students</h2>
-
-                <!-- Add Student Form -->
-                <div class="form-container">
-                    <h3>Add a New Student</h3>
-                    <form @submit.prevent="addStudent">
-                        <div class="form-group">
-                            <label for="student_name">Student Name:</label>
-                            <input type="text" id="student_name" v-model="newStudent.name" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="student_email">Student Email:</label>
-                            <input type="email" id="student_email" v-model="newStudent.email" required>
-                        </div>
-                        <button type="submit">Add Student</button>
-                    </form>
-                </div>
-
-                <!-- List Students -->
-                <div class="list-container">
-                    <h3>Edit or Delete Students</h3>
-                    <div v-if="loading.students" class="loading">Loading students...</div>
-                    <ul v-else class="item-list">
-                        <li v-for="student in students" :key="student.id">
-                            {{ student.name }} ({{ student.email }})
-                            <div class="actions">
-                                <button @click="editStudent(student)">Edit</button>
-                                <button class="delete-btn" @click="deleteStudent(student.id)">Delete</button>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Edit Student Form (conditional rendering) -->
-                <div v-if="editMode.students" class="form-container edit-form">
-                    <h3>Edit Student</h3>
-                    <form @submit.prevent="updateStudent">
-                        <div class="form-group">
-                            <label for="edit_student_name">Name:</label>
-                            <input type="text" id="edit_student_name" v-model="editingStudent.name" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="edit_student_email">Email:</label>
-                            <input type="email" id="edit_student_email" v-model="editingStudent.email" required>
-                        </div>
-                        <button type="submit">Update</button>
-                        <button type="button" @click="cancelEdit('students')">Cancel</button>
-                    </form>
-                </div>
-
-                <!-- Subscribe Student to Topic -->
-                <div class="form-container">
-                    <h3>Subscribe a Student to a Topic</h3>
-                    <form @submit.prevent="subscribeStudentToTopic">
-                        <div class="form-group">
-                            <label for="subscription_student_id">Student:</label>
-                            <select id="subscription_student_id" v-model="newSubscription.student_id" required>
-                                <option v-for="student in students" :key="student.id" :value="student.id">
-                                    {{ student.name }}
-                                </option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="subscription_topic_id">Topic:</label>
-                            <select id="subscription_topic_id" v-model="newSubscription.topic_id" required>
-                                <option v-for="topic in topics" :key="topic.id" :value="topic.id">
-                                    {{ topic.title }}
-                                </option>
-                            </select>
-                        </div>
-                        <button type="submit">Subscribe</button>
-                    </form>
-                </div>
-
-                <!-- View Students of a Topic -->
-                <div class="form-container">
-                    <h3>Manage Students of a Topic</h3>
-                    <form @submit.prevent="viewStudentsOfTopic">
-                        <div class="form-group">
-                            <label for="view_topic_id">Topic:</label>
-                            <select id="view_topic_id" v-model="selectedTopicId" required>
-                                <option v-for="topic in topics" :key="topic.id" :value="topic.id">
-                                    {{ topic.title }}
-                                </option>
-                            </select>
-                        </div>
-                        <button type="submit">View Students</button>
-                    </form>
-                </div>
-
-                <!-- Students of Selected Topic -->
-                <div v-if="topicStudents.length > 0" class="list-container">
-                    <h3>Students Subscribed to Topic: {{ selectedTopicName }}</h3>
-                    <ul class="item-list">
-                        <li v-for="student in topicStudents" :key="student.id">
-                            {{ student.name }} ({{ student.email }})
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Status Messages -->
-                <div v-if="messages.students" :class="['message', messages.students.type]">
-                    {{ messages.students.text }}
-                </div>
-            </div>
+            <router-view></router-view>
         </div>
     </div>
 
@@ -521,8 +247,452 @@
         const API_URL = 'api.php';
 
         // Initialize Vue Application with Vue 3
-        const { createApp, ref, reactive, watch, onMounted } = Vue;
+        const { createApp, ref, reactive, watch, onMounted, provide, inject } = Vue;
+        const { createRouter, createWebHashHistory } = VueRouter;
 
+        // Component Templates
+        const TeachersComponent = {
+            setup() {
+                // Access the global state using inject
+                const {
+                    teachers,
+                    loading,
+                    messages,
+                    newTeacher,
+                    editMode,
+                    editingTeacher,
+                    addTeacher,
+                    editTeacher,
+                    updateTeacher,
+                    deleteTeacher,
+                    cancelEdit
+                } = inject('globalState');
+
+                return {
+                    teachers,
+                    loading,
+                    messages,
+                    newTeacher,
+                    editMode,
+                    editingTeacher,
+                    addTeacher,
+                    editTeacher,
+                    updateTeacher,
+                    deleteTeacher,
+                    cancelEdit
+                };
+            },
+            template: `
+                <div class="tab-content">
+                    <h2>Manage Teachers</h2>
+                    
+                    <!-- Message display -->
+                    <div v-if="messages.teachers" class="message" :class="messages.teachers.type">
+                        {{ messages.teachers.text }}
+                    </div>
+                    
+                    <!-- Add Teacher Form -->
+                    <div class="form-container">
+                        <h3>Add New Teacher</h3>
+                        <div class="form-group">
+                            <label for="teacherName">Name:</label>
+                            <input id="teacherName" v-model="newTeacher.name" placeholder="Teacher Name" />
+                        </div>
+                        <div class="form-group">
+                            <label for="teacherEmail">Email:</label>
+                            <input id="teacherEmail" type="email" v-model="newTeacher.email" placeholder="Email Address" />
+                        </div>
+                        <button @click="addTeacher">Add Teacher</button>
+                    </div>
+                    
+                    <!-- Edit Teacher Form (conditionally shown) -->
+                    <div class="form-container edit-form" v-if="editMode.teachers">
+                        <h3>Edit Teacher</h3>
+                        <div class="form-group">
+                            <label for="editTeacherName">Name:</label>
+                            <input id="editTeacherName" v-model="editingTeacher.name" />
+                        </div>
+                        <div class="form-group">
+                            <label for="editTeacherEmail">Email:</label>
+                            <input id="editTeacherEmail" type="email" v-model="editingTeacher.email" />
+                        </div>
+                        <button @click="updateTeacher">Save Changes</button>
+                        <button @click="cancelEdit('teachers')">Cancel</button>
+                    </div>
+                    
+                    <!-- Teachers List -->
+                    <div class="list-container">
+                        <h3>Existing Teachers</h3>
+                        <div v-if="loading.teachers" class="loading">Loading teachers...</div>
+                        <table v-else>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="teacher in teachers" :key="teacher.id">
+                                    <td>{{ teacher.name }}</td>
+                                    <td>{{ teacher.email }}</td>
+                                    <td>
+                                        <button @click="editTeacher(teacher)">Edit</button>
+                                        <button class="delete-btn" @click="deleteTeacher(teacher.id)">Delete</button>
+                                    </td>
+                                </tr>
+                                <tr v-if="teachers.length === 0">
+                                    <td colspan="3">No teachers found.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `,
+        };
+
+        const CoursesComponent = {
+            setup() {
+                // Access the global state using inject
+                const {
+                    courses,
+                    topics,
+                    teachers,
+                    loading,
+                    messages,
+                    newCourse,
+                    newTopic,
+                    editMode,
+                    editingCourse,
+                    addCourse,
+                    editCourse,
+                    updateCourse,
+                    deleteCourse,
+                    addTopic,
+                    deleteTopic,
+                    assignTeacher,
+                    cancelEdit
+                } = inject('globalState');
+
+                return {
+                    courses,
+                    topics,
+                    teachers,
+                    loading,
+                    messages,
+                    newCourse,
+                    newTopic,
+                    editMode,
+                    editingCourse,
+                    addCourse,
+                    editCourse,
+                    updateCourse,
+                    deleteCourse,
+                    addTopic,
+                    deleteTopic,
+                    assignTeacher,
+                    cancelEdit
+                };
+            },
+            template: `
+                <div class="tab-content">
+                    <h2>Manage Courses & Topics</h2>
+                    
+                    <!-- Message display -->
+                    <div v-if="messages.courses" class="message" :class="messages.courses.type">
+                        {{ messages.courses.text }}
+                    </div>
+                    
+                    <!-- Add Course Form -->
+                    <div class="form-container">
+                        <h3>Add New Course</h3>
+                        <div class="form-group">
+                            <label for="courseName">Course Name:</label>
+                            <input id="courseName" v-model="newCourse.name" placeholder="Course Name" />
+                        </div>
+                        <button @click="addCourse">Add Course</button>
+                    </div>
+                    
+                    <!-- Edit Course Form (conditionally shown) -->
+                    <div class="form-container edit-form" v-if="editMode.courses">
+                        <h3>Edit Course</h3>
+                        <div class="form-group">
+                            <label for="editCourseName">Name:</label>
+                            <input id="editCourseName" v-model="editingCourse.name" />
+                        </div>
+                        <button @click="updateCourse">Save Changes</button>
+                        <button @click="cancelEdit('courses')">Cancel</button>
+                    </div>
+                    
+                    <!-- Courses List -->
+                    <div class="list-container">
+                        <h3>Existing Courses</h3>
+                        <div v-if="loading.courses" class="loading">Loading courses...</div>
+                        <table v-else>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="course in courses" :key="course.id">
+                                    <td>{{ course.name }}</td>
+                                    <td>
+                                        <button @click="editCourse(course)">Edit</button>
+                                        <button class="delete-btn" @click="deleteCourse(course.id)">Delete</button>
+                                    </td>
+                                </tr>
+                                <tr v-if="courses.length === 0">
+                                    <td colspan="2">No courses found.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Add Topic Form -->
+                    <div class="form-container">
+                        <h3>Add New Topic</h3>
+                        <div class="form-group">
+                            <label for="topicTitle">Topic Title:</label>
+                            <input id="topicTitle" v-model="newTopic.title" placeholder="Topic Title" />
+                        </div>
+                        <div class="form-group">
+                            <label for="topicCourse">Course:</label>
+                            <select id="topicCourse" v-model="newTopic.course_id" aria-label="Select course for topic">
+                                <option v-for="course in courses" :key="course.id" :value="course.id">
+                                    {{ course.name }}
+                                </option>
+                            </select>
+                        </div>
+                        <button @click="addTopic" :disabled="courses.length === 0">Add Topic</button>
+                    </div>
+                    
+                    <!-- Topics List -->
+                    <div class="list-container">
+                        <h3>Existing Topics</h3>
+                        <div v-if="loading.topics" class="loading">Loading topics...</div>
+                        <table v-else>
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Course</th>
+                                    <th>Assigned Teacher</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="topic in topics" :key="topic.id">
+                                    <td>{{ topic.title }}</td>
+                                    <td>{{ topic.course_name }}</td>
+                                    <td>
+                                        <select v-model="topic.teacher_id" aria-label="Assign teacher to topic"
+                                                @change="assignTeacher(topic.id, topic.teacher_id)">
+                                            <option value="">-- Unassigned --</option>
+                                            <option v-for="teacher in teachers" :key="teacher.id" :value="teacher.id">
+                                                {{ teacher.name }}
+                                            </option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <button class="delete-btn" @click="deleteTopic(topic.id)">Delete</button>
+                                    </td>
+                                </tr>
+                                <tr v-if="topics.length === 0">
+                                    <td colspan="4">No topics found.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `,
+        };
+
+        const StudentsComponent = {
+            setup() {
+                // Access the global state using inject
+                const {
+                    students,
+                    topics,
+                    topicStudents,
+                    loading,
+                    messages,
+                    newStudent,
+                    newSubscription,
+                    editMode,
+                    editingStudent,
+                    selectedTopicId,
+                    selectedTopicName,
+                    addStudent,
+                    editStudent,
+                    updateStudent,
+                    deleteStudent,
+                    subscribeStudentToTopic,
+                    viewStudentsOfTopic,
+                    cancelEdit
+                } = inject('globalState');
+
+                return {
+                    students,
+                    topics,
+                    topicStudents,
+                    loading,
+                    messages,
+                    newStudent,
+                    newSubscription,
+                    editMode,
+                    editingStudent,
+                    selectedTopicId,
+                    selectedTopicName,
+                    addStudent,
+                    editStudent,
+                    updateStudent,
+                    deleteStudent,
+                    subscribeStudentToTopic,
+                    viewStudentsOfTopic,
+                    cancelEdit
+                };
+            },
+            template: `
+                <div class="tab-content">
+                    <h2>Manage Students</h2>
+                    
+                    <!-- Message display -->
+                    <div v-if="messages.students" class="message" :class="messages.students.type">
+                        {{ messages.students.text }}
+                    </div>
+                    
+                    <!-- Add Student Form -->
+                    <div class="form-container">
+                        <h3>Add New Student</h3>
+                        <div class="form-group">
+                            <label for="studentName">Name:</label>
+                            <input id="studentName" v-model="newStudent.name" placeholder="Student Name" />
+                        </div>
+                        <div class="form-group">
+                            <label for="studentEmail">Email:</label>
+                            <input id="studentEmail" type="email" v-model="newStudent.email" placeholder="Email Address" />
+                        </div>
+                        <button @click="addStudent">Add Student</button>
+                    </div>
+                    
+                    <!-- Edit Student Form (conditionally shown) -->
+                    <div class="form-container edit-form" v-if="editMode.students">
+                        <h3>Edit Student</h3>
+                        <div class="form-group">
+                            <label for="editStudentName">Name:</label>
+                            <input id="editStudentName" v-model="editingStudent.name" />
+                        </div>
+                        <div class="form-group">
+                            <label for="editStudentEmail">Email:</label>
+                            <input id="editStudentEmail" type="email" v-model="editingStudent.email" />
+                        </div>
+                        <button @click="updateStudent">Save Changes</button>
+                        <button @click="cancelEdit('students')">Cancel</button>
+                    </div>
+                    
+                    <!-- Subscribe to Topic Form -->
+                    <div class="form-container" v-if="topics.length > 0 && students.length > 0">
+                        <h3>Subscribe Student to Topic</h3>
+                        <div class="form-group">
+                            <label for="selectStudent">Student:</label>
+                            <select id="selectStudent" v-model="newSubscription.student_id" aria-label="Select student to subscribe">
+                                <option v-for="student in students" :key="student.id" :value="student.id">
+                                    {{ student.name }}
+                                </option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="selectTopic">Topic:</label>
+                            <select id="selectTopic" v-model="newSubscription.topic_id" aria-label="Select topic for subscription">
+                                <option v-for="topic in topics" :key="topic.id" :value="topic.id">
+                                    {{ topic.title }} ({{ topic.course_name }})
+                                </option>
+                            </select>
+                        </div>
+                        <button @click="subscribeStudentToTopic">Subscribe</button>
+                    </div>
+                    
+                    <!-- Students List -->
+                    <div class="list-container">
+                        <h3>All Students</h3>
+                        <div v-if="loading.students" class="loading">Loading students...</div>
+                        <table v-else>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="student in students" :key="student.id">
+                                    <td>{{ student.name }}</td>
+                                    <td>{{ student.email }}</td>
+                                    <td>
+                                        <button @click="editStudent(student)">Edit</button>
+                                        <button class="delete-btn" @click="deleteStudent(student.id)">Delete</button>
+                                    </td>
+                                </tr>
+                                <tr v-if="students.length === 0">
+                                    <td colspan="3">No students found.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- View Topic Students -->
+                    <div class="form-container" v-if="topics.length > 0">
+                        <h3>View Students by Topic</h3>
+                        <div class="form-group">
+                            <label for="viewTopic">Select Topic:</label>
+                            <select id="viewTopic" v-model="selectedTopicId" aria-label="Select topic to view students" 
+                                    @change="viewStudentsOfTopic">
+                                <option v-for="topic in topics" :key="topic.id" :value="topic.id">
+                                    {{ topic.title }} ({{ topic.course_name }})
+                                </option>
+                            </select>
+                        </div>
+                        <div v-if="selectedTopicId && topicStudents.length > 0" class="list-container">
+                            <h4>Students in Topic: {{ selectedTopicName }}</h4>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="student in topicStudents" :key="student.id">
+                                        <td>{{ student.name }}</td>
+                                        <td>{{ student.email }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div v-else-if="selectedTopicId" class="message">
+                            No students enrolled in this topic.
+                        </div>
+                    </div>
+                </div>
+            `,
+        };
+
+        // Define routes
+        const routes = [
+            { path: '/', redirect: '/teachers' },
+            { path: '/teachers', name: 'Teachers', component: TeachersComponent },
+            { path: '/courses', name: 'Courses & Topics', component: CoursesComponent },
+            { path: '/students', name: 'Students', component: StudentsComponent }
+        ];
+
+        // Create the router instance
+        const router = createRouter({
+            history: createWebHashHistory(),
+            routes
+        });
+
+        // Create Vue app
         createApp({
             setup() {
                 // Navigation
@@ -929,10 +1099,8 @@
                     }
                 });
 
-                // Return everything that should be accessible in the template
-                return {
-                    activeTab,
-                    tabs,
+                // Provide global state
+                provide('globalState', {
                     teachers,
                     courses,
                     topics,
@@ -972,10 +1140,18 @@
                     deleteStudent,
                     subscribeStudentToTopic,
                     viewStudentsOfTopic,
-                    cancelEdit
+                    cancelEdit,
+                    showMessage
+                });
+
+                // Return everything that should be accessible in the template
+                return {
+                    activeTab,
+                    tabs,
+                    routes // Make routes available to the template
                 };
             }
-        }).mount('#app');
+        }).use(router).mount('#app');
     </script>
 </body>
 
