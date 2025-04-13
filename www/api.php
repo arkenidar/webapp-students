@@ -37,7 +37,9 @@ $method = $_SERVER['REQUEST_METHOD'];
 // Parse the URL to get the endpoint and resource ID
 $url_parts = parse_url($_SERVER['REQUEST_URI']);
 $path = $url_parts['path'];
-$path_parts = explode('/', trim(str_replace('/api.php', '', $path), '/'));
+// Extract the part after /api.php
+$api_path = preg_replace('/^.*\/api\.php/', '', $path);
+$path_parts = explode('/', trim($api_path, '/'));
 $endpoint = $path_parts[0] ?? '';
 $resource_id = isset($path_parts[1]) && is_numeric($path_parts[1]) ? (int)$path_parts[1] : null;
 $sub_resource = $path_parts[1] ?? null;
