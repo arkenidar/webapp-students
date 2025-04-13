@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Management Dashboard - SPA</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- Vue.js from CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <!-- Vue.js from CDN - Updated to Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         /* Base styles for SPA */
         body {
@@ -520,85 +520,60 @@
         // API Base URL
         const API_URL = 'api.php';
 
-        // Initialize Vue Application
-        new Vue({
-            el: '#app',
-            data: {
+        // Initialize Vue Application with Vue 3
+        const { createApp, ref, reactive, watch, onMounted } = Vue;
+
+        createApp({
+            setup() {
                 // Navigation
-                activeTab: 'teachers',
-                tabs: [
+                const activeTab = ref('teachers');
+                const tabs = [
                     { id: 'teachers', name: 'Teachers' },
                     { id: 'courses', name: 'Courses & Topics' },
                     { id: 'students', name: 'Students' }
-                ],
+                ];
 
                 // Data collections
-                teachers: [],
-                courses: [],
-                topics: [],
-                students: [],
-                topicStudents: [],
+                const teachers = ref([]);
+                const courses = ref([]);
+                const topics = ref([]);
+                const students = ref([]);
+                const topicStudents = ref([]);
 
                 // New item models
-                newTeacher: { name: '', email: '' },
-                newCourse: { name: '' },
-                newTopic: { title: '', course_id: '' },
-                newStudent: { name: '', email: '' },
-                newSubscription: { student_id: '', topic_id: '' },
+                const newTeacher = reactive({ name: '', email: '' });
+                const newCourse = reactive({ name: '' });
+                const newTopic = reactive({ title: '', course_id: '' });
+                const newStudent = reactive({ name: '', email: '' });
+                const newSubscription = reactive({ student_id: '', topic_id: '' });
 
                 // Edit mode flags and models
-                editMode: { teachers: false, courses: false, students: false },
-                editingTeacher: { id: null, name: '', email: '' },
-                editingCourse: { id: null, name: '' },
-                editingStudent: { id: null, name: '', email: '' },
+                const editMode = reactive({ teachers: false, courses: false, students: false });
+                const editingTeacher = reactive({ id: null, name: '', email: '' });
+                const editingCourse = reactive({ id: null, name: '' });
+                const editingStudent = reactive({ id: null, name: '', email: '' });
 
                 // Topic selection for viewing students
-                selectedTopicId: '',
-                selectedTopicName: '',
+                const selectedTopicId = ref('');
+                const selectedTopicName = ref('');
 
                 // UI state
-                loading: {
+                const loading = reactive({
                     teachers: false,
                     courses: false,
                     topics: false,
                     students: false
-                },
+                });
 
                 // Message handling
-                messages: {
+                const messages = reactive({
                     teachers: null,
                     courses: null,
                     students: null
-                }
-            },
+                });
 
-            // Lifecycle hooks
-            mounted() {
-                // Load all data when component mounts
-                this.fetchTeachers();
-                this.fetchCourses();
-                this.fetchTopics();
-                this.fetchStudents();
-
-                // Check for URL hash to set active tab
-                const hash = window.location.hash.substring(1);
-                if (hash && this.tabs.some(tab => tab.id === hash)) {
-                    this.activeTab = hash;
-                }
-            },
-
-            watch: {
-                // Update URL hash when tab changes
-                activeTab(newTab) {
-                    window.location.hash = newTab;
-                }
-            },
-
-            methods: {
-                // ===== API Communication Methods =====
-
-                // Generic API request method
-                async apiRequest(method, endpoint, data = null) {
+                // API Communication Methods
+                const apiRequest = async (method, endpoint, data = null) => {
                     try {
                         let url = `${API_URL}?action=${endpoint}`;
                         const options = {
@@ -618,7 +593,7 @@
                             if (queryString) {
                                 url += `&${queryString}`;
                             }
-                        } 
+                        }
                         // For non-GET requests, include data in request body
                         else if (data) {
                             options.body = JSON.stringify(data);
@@ -633,323 +608,374 @@
                         console.error(`API Error (${endpoint}):`, error);
                         throw error;
                     }
-                },
+                };
 
-                // ===== Teacher Methods =====
-
-                // Fetch all teachers
-                async fetchTeachers() {
-                    this.loading.teachers = true;
+                // Teacher Methods
+                const fetchTeachers = async () => {
+                    loading.teachers = true;
                     try {
-                        const response = await this.apiRequest('GET', 'getTeachers');
-                        this.teachers = response.data;
+                        const response = await apiRequest('GET', 'getTeachers');
+                        teachers.value = response.data;
                     } catch (error) {
-                        this.showMessage('teachers', 'Error loading teachers', 'error');
+                        showMessage('teachers', 'Error loading teachers', 'error');
                     } finally {
-                        this.loading.teachers = false;
+                        loading.teachers = false;
                     }
-                },
+                };
 
-                // Add a new teacher
-                async addTeacher() {
+                const addTeacher = async () => {
                     try {
-                        await this.apiRequest('POST', 'addTeacher', this.newTeacher);
-                        this.showMessage('teachers', 'Teacher added successfully', 'success');
-                        this.newTeacher = { name: '', email: '' };
-                        this.fetchTeachers();
+                        await apiRequest('POST', 'addTeacher', newTeacher);
+                        showMessage('teachers', 'Teacher added successfully', 'success');
+                        newTeacher.name = '';
+                        newTeacher.email = '';
+                        fetchTeachers();
                     } catch (error) {
-                        this.showMessage('teachers', 'Error adding teacher', 'error');
+                        showMessage('teachers', 'Error adding teacher', 'error');
                     }
-                },
+                };
 
-                // Edit teacher (prepare form)
-                editTeacher(teacher) {
-                    this.editingTeacher = { ...teacher };
-                    this.editMode.teachers = true;
-                },
+                const editTeacher = (teacher) => {
+                    editingTeacher.id = teacher.id;
+                    editingTeacher.name = teacher.name;
+                    editingTeacher.email = teacher.email;
+                    editMode.teachers = true;
+                };
 
-                // Update teacher
-                async updateTeacher() {
+                const updateTeacher = async () => {
                     try {
-                        await this.apiRequest('PUT', 'updateTeacher', this.editingTeacher);
-                        this.showMessage('teachers', 'Teacher updated successfully', 'success');
-                        this.cancelEdit('teachers');
-                        this.fetchTeachers();
+                        await apiRequest('PUT', 'updateTeacher', editingTeacher);
+                        showMessage('teachers', 'Teacher updated successfully', 'success');
+                        cancelEdit('teachers');
+                        fetchTeachers();
                     } catch (error) {
-                        this.showMessage('teachers', 'Error updating teacher', 'error');
+                        showMessage('teachers', 'Error updating teacher', 'error');
                     }
-                },
+                };
 
-                // Delete teacher
-                async deleteTeacher(id) {
+                const deleteTeacher = async (id) => {
                     if (confirm('Are you sure you want to delete this teacher?')) {
                         try {
-                            await this.apiRequest('DELETE', 'deleteTeacher', { id });
-                            this.showMessage('teachers', 'Teacher deleted successfully', 'success');
-                            this.fetchTeachers();
-                            this.fetchTopics(); // Refresh topics to update teacher assignments
+                            await apiRequest('DELETE', 'deleteTeacher', { id });
+                            showMessage('teachers', 'Teacher deleted successfully', 'success');
+                            fetchTeachers();
+                            fetchTopics(); // Refresh topics to update teacher assignments
                         } catch (error) {
-                            this.showMessage('teachers', 'Error deleting teacher', 'error');
+                            showMessage('teachers', 'Error deleting teacher', 'error');
                         }
                     }
-                },
+                };
 
-                // ===== Course Methods =====
-
-                // Fetch all courses
-                async fetchCourses() {
-                    this.loading.courses = true;
+                // Course Methods
+                const fetchCourses = async () => {
+                    loading.courses = true;
                     try {
-                        const response = await this.apiRequest('GET', 'getCourses');
-                        this.courses = response.data;
+                        const response = await apiRequest('GET', 'getCourses');
+                        courses.value = response.data;
                         // Set default course_id for new topics if courses exist
-                        if (this.courses.length > 0 && !this.newTopic.course_id) {
-                            this.newTopic.course_id = this.courses[0].id;
+                        if (courses.value.length > 0 && !newTopic.course_id) {
+                            newTopic.course_id = courses.value[0].id;
                         }
                     } catch (error) {
-                        this.showMessage('courses', 'Error loading courses', 'error');
+                        showMessage('courses', 'Error loading courses', 'error');
                     } finally {
-                        this.loading.courses = false;
+                        loading.courses = false;
                     }
-                },
+                };
 
-                // Add a new course
-                async addCourse() {
+                const addCourse = async () => {
                     try {
-                        await this.apiRequest('POST', 'addCourse', this.newCourse);
-                        this.showMessage('courses', 'Course added successfully', 'success');
-                        this.newCourse = { name: '' };
-                        this.fetchCourses();
+                        await apiRequest('POST', 'addCourse', newCourse);
+                        showMessage('courses', 'Course added successfully', 'success');
+                        newCourse.name = '';
+                        fetchCourses();
                     } catch (error) {
-                        this.showMessage('courses', 'Error adding course', 'error');
+                        showMessage('courses', 'Error adding course', 'error');
                     }
-                },
+                };
 
-                // Edit course (prepare form)
-                editCourse(course) {
-                    this.editingCourse = { ...course };
-                    this.editMode.courses = true;
-                },
+                const editCourse = (course) => {
+                    editingCourse.id = course.id;
+                    editingCourse.name = course.name;
+                    editMode.courses = true;
+                };
 
-                // Update course
-                async updateCourse() {
+                const updateCourse = async () => {
                     try {
-                        await this.apiRequest('PUT', 'updateCourse', this.editingCourse);
-                        this.showMessage('courses', 'Course updated successfully', 'success');
-                        this.cancelEdit('courses');
-                        this.fetchCourses();
-                        this.fetchTopics(); // Refresh topics to update course names
+                        await apiRequest('PUT', 'updateCourse', editingCourse);
+                        showMessage('courses', 'Course updated successfully', 'success');
+                        cancelEdit('courses');
+                        fetchCourses();
+                        fetchTopics(); // Refresh topics to update course names
                     } catch (error) {
-                        this.showMessage('courses', 'Error updating course', 'error');
+                        showMessage('courses', 'Error updating course', 'error');
                     }
-                },
+                };
 
-                // Delete course
-                async deleteCourse(id) {
+                const deleteCourse = async (id) => {
                     if (confirm('Are you sure you want to delete this course? All associated topics will also be deleted.')) {
                         try {
-                            await this.apiRequest('DELETE', 'deleteCourse', { id });
-                            this.showMessage('courses', 'Course deleted successfully', 'success');
-                            this.fetchCourses();
-                            this.fetchTopics(); // Refresh topics list after deletion
+                            await apiRequest('DELETE', 'deleteCourse', { id });
+                            showMessage('courses', 'Course deleted successfully', 'success');
+                            fetchCourses();
+                            fetchTopics(); // Refresh topics list after deletion
                         } catch (error) {
-                            this.showMessage('courses', 'Error deleting course', 'error');
+                            showMessage('courses', 'Error deleting course', 'error');
                         }
                     }
-                },
+                };
 
-                // ===== Topic Methods =====
-
-                // Fetch all topics
-                async fetchTopics() {
-                    this.loading.topics = true;
+                // Topic Methods
+                const fetchTopics = async () => {
+                    loading.topics = true;
                     try {
-                        const response = await this.apiRequest('GET', 'getTopics');
-                        this.topics = response.data;
+                        const response = await apiRequest('GET', 'getTopics');
+                        topics.value = response.data;
                         // Set default topic_id for subscriptions if topics exist
-                        if (this.topics.length > 0 && !this.newSubscription.topic_id) {
-                            this.newSubscription.topic_id = this.topics[0].id;
+                        if (topics.value.length > 0 && !newSubscription.topic_id) {
+                            newSubscription.topic_id = topics.value[0].id;
                         }
                         // Set default topic for viewing students if topics exist
-                        if (this.topics.length > 0 && !this.selectedTopicId) {
-                            this.selectedTopicId = this.topics[0].id;
+                        if (topics.value.length > 0 && !selectedTopicId.value) {
+                            selectedTopicId.value = topics.value[0].id;
                         }
                     } catch (error) {
-                        this.showMessage('courses', 'Error loading topics', 'error');
+                        showMessage('courses', 'Error loading topics', 'error');
                     } finally {
-                        this.loading.topics = false;
+                        loading.topics = false;
                     }
-                },
+                };
 
-                // Add a new topic
-                async addTopic() {
+                const addTopic = async () => {
                     try {
-                        await this.apiRequest('POST', 'addTopic', this.newTopic);
-                        this.showMessage('courses', 'Topic added successfully', 'success');
-                        this.newTopic = { title: '', course_id: this.courses.length > 0 ? this.courses[0].id : '' };
-                        this.fetchTopics();
+                        await apiRequest('POST', 'addTopic', newTopic);
+                        showMessage('courses', 'Topic added successfully', 'success');
+                        newTopic.title = '';
+                        newTopic.course_id = courses.value.length > 0 ? courses.value[0].id : '';
+                        fetchTopics();
                     } catch (error) {
-                        this.showMessage('courses', 'Error adding topic', 'error');
+                        showMessage('courses', 'Error adding topic', 'error');
                     }
-                },
+                };
 
-                // Delete topic
-                async deleteTopic(id) {
+                const deleteTopic = async (id) => {
                     if (confirm('Are you sure you want to delete this topic?')) {
                         try {
-                            await this.apiRequest('DELETE', 'deleteTopic', { id });
-                            this.showMessage('courses', 'Topic deleted successfully', 'success');
-                            this.fetchTopics();
+                            await apiRequest('DELETE', 'deleteTopic', { id });
+                            showMessage('courses', 'Topic deleted successfully', 'success');
+                            fetchTopics();
                         } catch (error) {
-                            this.showMessage('courses', 'Error deleting topic', 'error');
+                            showMessage('courses', 'Error deleting topic', 'error');
                         }
                     }
-                },
+                };
 
-                // Assign a teacher to a topic
-                async assignTeacher(topicId, teacherId) {
+                const assignTeacher = async (topicId, teacherId) => {
                     try {
-                        await this.apiRequest('PUT', 'assignTeacher', { topic_id: topicId, teacher_id: teacherId });
-                        this.showMessage('courses', 'Teacher assigned successfully', 'success');
-                        this.fetchTopics();
+                        await apiRequest('PUT', 'assignTeacher', { topic_id: topicId, teacher_id: teacherId });
+                        showMessage('courses', 'Teacher assigned successfully', 'success');
+                        fetchTopics();
                     } catch (error) {
-                        this.showMessage('courses', 'Error assigning teacher', 'error');
+                        showMessage('courses', 'Error assigning teacher', 'error');
                     }
-                },
+                };
 
-                // ===== Student Methods =====
-
-                // Fetch all students
-                async fetchStudents() {
-                    this.loading.students = true;
+                // Student Methods
+                const fetchStudents = async () => {
+                    loading.students = true;
                     try {
-                        const response = await this.apiRequest('GET', 'getStudents');
-                        this.students = response.data;
+                        const response = await apiRequest('GET', 'getStudents');
+                        students.value = response.data;
                         // Set default student_id for subscriptions if students exist
-                        if (this.students.length > 0 && !this.newSubscription.student_id) {
-                            this.newSubscription.student_id = this.students[0].id;
+                        if (students.value.length > 0 && !newSubscription.student_id) {
+                            newSubscription.student_id = students.value[0].id;
                         }
                     } catch (error) {
-                        this.showMessage('students', 'Error loading students', 'error');
+                        showMessage('students', 'Error loading students', 'error');
                     } finally {
-                        this.loading.students = false;
+                        loading.students = false;
                     }
-                },
+                };
 
-                // Add a new student
-                async addStudent() {
+                const addStudent = async () => {
                     try {
-                        await this.apiRequest('POST', 'addStudent', this.newStudent);
-                        this.showMessage('students', 'Student added successfully', 'success');
-                        this.newStudent = { name: '', email: '' };
-                        this.fetchStudents();
+                        await apiRequest('POST', 'addStudent', newStudent);
+                        showMessage('students', 'Student added successfully', 'success');
+                        newStudent.name = '';
+                        newStudent.email = '';
+                        fetchStudents();
                     } catch (error) {
-                        this.showMessage('students', 'Error adding student', 'error');
+                        showMessage('students', 'Error adding student', 'error');
                     }
-                },
+                };
 
-                // Edit student (prepare form)
-                editStudent(student) {
-                    this.editingStudent = { ...student };
-                    this.editMode.students = true;
-                },
+                const editStudent = (student) => {
+                    editingStudent.id = student.id;
+                    editingStudent.name = student.name;
+                    editingStudent.email = student.email;
+                    editMode.students = true;
+                };
 
-                // Update student
-                async updateStudent() {
+                const updateStudent = async () => {
                     try {
-                        await this.apiRequest('PUT', 'updateStudent', this.editingStudent);
-                        this.showMessage('students', 'Student updated successfully', 'success');
-                        this.cancelEdit('students');
-                        this.fetchStudents();
+                        await apiRequest('PUT', 'updateStudent', editingStudent);
+                        showMessage('students', 'Student updated successfully', 'success');
+                        cancelEdit('students');
+                        fetchStudents();
 
                         // If we're viewing topic students, refresh that view too
-                        if (this.selectedTopicId && this.topicStudents.length > 0) {
-                            this.viewStudentsOfTopic();
+                        if (selectedTopicId.value && topicStudents.value.length > 0) {
+                            viewStudentsOfTopic();
                         }
                     } catch (error) {
-                        this.showMessage('students', 'Error updating student', 'error');
+                        showMessage('students', 'Error updating student', 'error');
                     }
-                },
+                };
 
-                // Delete student
-                async deleteStudent(id) {
+                const deleteStudent = async (id) => {
                     if (confirm('Are you sure you want to delete this student?')) {
                         try {
-                            await this.apiRequest('DELETE', 'deleteStudent', { id });
-                            this.showMessage('students', 'Student deleted successfully', 'success');
-                            this.fetchStudents();
+                            await apiRequest('DELETE', 'deleteStudent', { id });
+                            showMessage('students', 'Student deleted successfully', 'success');
+                            fetchStudents();
 
                             // If we're viewing topic students, refresh that view too
-                            if (this.selectedTopicId && this.topicStudents.length > 0) {
-                                this.viewStudentsOfTopic();
+                            if (selectedTopicId.value && topicStudents.value.length > 0) {
+                                viewStudentsOfTopic();
                             }
                         } catch (error) {
-                            this.showMessage('students', 'Error deleting student', 'error');
+                            showMessage('students', 'Error deleting student', 'error');
                         }
                     }
-                },
+                };
 
-                // Subscribe a student to a topic
-                async subscribeStudentToTopic() {
+                const subscribeStudentToTopic = async () => {
                     try {
-                        await this.apiRequest('POST', 'subscribeStudentToTopic', this.newSubscription);
-                        this.showMessage('students', 'Student subscribed to topic successfully', 'success');
+                        await apiRequest('POST', 'subscribeStudentToTopic', newSubscription);
+                        showMessage('students', 'Student subscribed to topic successfully', 'success');
 
                         // If we're viewing the same topic, refresh the view
-                        if (this.selectedTopicId === this.newSubscription.topic_id) {
-                            this.viewStudentsOfTopic();
+                        if (selectedTopicId.value === newSubscription.topic_id) {
+                            viewStudentsOfTopic();
                         }
                     } catch (error) {
-                        this.showMessage('students', 'Error subscribing student to topic', 'error');
+                        showMessage('students', 'Error subscribing student to topic', 'error');
                     }
-                },
+                };
 
-                // View students of a topic
-                async viewStudentsOfTopic() {
-                    if (!this.selectedTopicId) return;
+                const viewStudentsOfTopic = async () => {
+                    if (!selectedTopicId.value) return;
 
                     try {
-                        const response = await this.apiRequest('GET', 'getTopicStudents', { topic_id: this.selectedTopicId });
-                        this.topicStudents = response.data;
+                        const response = await apiRequest('GET', 'getTopicStudents', { topic_id: selectedTopicId.value });
+                        topicStudents.value = response.data;
 
                         // Find the topic name
-                        const topic = this.topics.find(t => t.id === this.selectedTopicId);
-                        this.selectedTopicName = topic ? topic.title : '';
+                        const topic = topics.value.find(t => t.id === selectedTopicId.value);
+                        selectedTopicName.value = topic ? topic.title : '';
                     } catch (error) {
-                        this.showMessage('students', 'Error loading topic students', 'error');
-                        this.topicStudents = [];
+                        showMessage('students', 'Error loading topic students', 'error');
+                        topicStudents.value = [];
                     }
-                },
+                };
 
-                // ===== UI Helper Methods =====
-
-                // Cancel edit mode
-                cancelEdit(section) {
-                    this.editMode[section] = false;
+                // UI Helper Methods
+                const cancelEdit = (section) => {
+                    editMode[section] = false;
 
                     // Reset editing models
                     if (section === 'teachers') {
-                        this.editingTeacher = { id: null, name: '', email: '' };
+                        editingTeacher.id = null;
+                        editingTeacher.name = '';
+                        editingTeacher.email = '';
                     } else if (section === 'courses') {
-                        this.editingCourse = { id: null, name: '' };
+                        editingCourse.id = null;
+                        editingCourse.name = '';
                     } else if (section === 'students') {
-                        this.editingStudent = { id: null, name: '', email: '' };
+                        editingStudent.id = null;
+                        editingStudent.name = '';
+                        editingStudent.email = '';
                     }
-                },
+                };
 
-                // Show message with auto-dismiss
-                showMessage(section, text, type) {
-                    this.messages[section] = { text, type };
+                const showMessage = (section, text, type) => {
+                    messages[section] = { text, type };
 
                     // Auto-dismiss after 3 seconds
                     setTimeout(() => {
-                        if (this.messages[section] && this.messages[section].text === text) {
-                            this.messages[section] = null;
+                        if (messages[section] && messages[section].text === text) {
+                            messages[section] = null;
                         }
                     }, 3000);
-                }
+                };
+
+                // Watch for URL hash changes
+                watch(activeTab, (newTab) => {
+                    window.location.hash = newTab;
+                });
+
+                // Lifecycle hooks
+                onMounted(() => {
+                    // Load all data when component mounts
+                    fetchTeachers();
+                    fetchCourses();
+                    fetchTopics();
+                    fetchStudents();
+
+                    // Check for URL hash to set active tab
+                    const hash = window.location.hash.substring(1);
+                    if (hash && tabs.some(tab => tab.id === hash)) {
+                        activeTab.value = hash;
+                    }
+                });
+
+                // Return everything that should be accessible in the template
+                return {
+                    activeTab,
+                    tabs,
+                    teachers,
+                    courses,
+                    topics,
+                    students,
+                    topicStudents,
+                    newTeacher,
+                    newCourse,
+                    newTopic,
+                    newStudent,
+                    newSubscription,
+                    editMode,
+                    editingTeacher,
+                    editingCourse,
+                    editingStudent,
+                    selectedTopicId,
+                    selectedTopicName,
+                    loading,
+                    messages,
+                    fetchTeachers,
+                    addTeacher,
+                    editTeacher,
+                    updateTeacher,
+                    deleteTeacher,
+                    fetchCourses,
+                    addCourse,
+                    editCourse,
+                    updateCourse,
+                    deleteCourse,
+                    fetchTopics,
+                    addTopic,
+                    deleteTopic,
+                    assignTeacher,
+                    fetchStudents,
+                    addStudent,
+                    editStudent,
+                    updateStudent,
+                    deleteStudent,
+                    subscribeStudentToTopic,
+                    viewStudentsOfTopic,
+                    cancelEdit
+                };
             }
-        });
+        }).mount('#app');
     </script>
 </body>
 
