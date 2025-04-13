@@ -31,9 +31,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-// Get request method and action
+// Get request method
 $method = $_SERVER['REQUEST_METHOD'];
-$action = isset($_GET['action']) ? $_GET['action'] : '';
+
+// Parse the URL to get the endpoint and resource ID
+$url_parts = parse_url($_SERVER['REQUEST_URI']);
+$path = $url_parts['path'];
+$path_parts = explode('/', trim(str_replace('/api.php', '', $path), '/'));
+$endpoint = $path_parts[0] ?? '';
+$resource_id = isset($path_parts[1]) && is_numeric($path_parts[1]) ? (int)$path_parts[1] : null;
+$sub_resource = $path_parts[1] ?? null;
+
+// Get query parameters
+$query = [];
+if (isset($url_parts['query'])) {
+    parse_str($url_parts['query'], $query);
+}
 
 // Parse JSON input data
 $input = json_decode(file_get_contents('php://input'), true);
@@ -41,73 +54,127 @@ if (json_last_error() !== JSON_ERROR_NONE && $method !== 'GET') {
     sendError('Invalid JSON data', 400);
 }
 
-// Route the request
+// Route the request based on RESTful URL structure
 try {
-    switch ($action) {
-        // Teacher endpoints
-        case 'getTeachers':
-            getTeachers();
-            break;
-        case 'addTeacher':
-            addTeacher($input);
-            break;
-        case 'updateTeacher':
-            updateTeacher($input);
-            break;
-        case 'deleteTeacher':
-            deleteTeacher($input);
-            break;
-
-        // Course endpoints
-        case 'getCourses':
-            getCourses();
-            break;
-        case 'addCourse':
-            addCourse($input);
-            break;
-        case 'updateCourse':
-            updateCourse($input);
-            break;
-        case 'deleteCourse':
-            deleteCourse($input);
-            break;
-
-        // Topic endpoints
-        case 'getTopics':
-            getTopics();
-            break;
-        case 'addTopic':
-            addTopic($input);
-            break;
-        case 'deleteTopic':
-            deleteTopic($input);
-            break;
-        case 'assignTeacher':
-            assignTeacher($input);
+    switch ($endpoint) {
+        case 'teachers':
+            switch ($method) {
+                case 'GET':
+                    getTeachers();
+                    break;
+                case 'POST':
+                    addTeacher($input);
+                    break;
+                case 'PUT':
+                    if ($resource_id === null) {
+                        sendError('Teacher ID is required', 400);
+                    }
+                    $input['id'] = $resource_id;
+                    updateTeacher($input);
+                    break;
+                case 'DELETE':
+                    if ($resource_id === null) {
+                        sendError('Teacher ID is required', 400);
+                    }
+                    $input = ['id' => $resource_id];
+                    deleteTeacher($input);
+                    break;
+                default:
+                    sendError('Method not allowed', 405);
+            }
             break;
 
-        // Student endpoints
-        case 'getStudents':
-            getStudents();
+        case 'courses':
+            switch ($method) {
+                case 'GET':
+                    getCourses();
+                    break;
+                case 'POST':
+                    addCourse($input);
+                    break;
+                case 'PUT':
+                    if ($resource_id === null) {
+                        sendError('Course ID is required', 400);
+                    }
+                    $input['id'] = $resource_id;
+                    updateCourse($input);
+                    break;
+                case 'DELETE':
+                    if ($resource_id === null) {
+                        sendError('Course ID is required', 400);
+                    }
+                    $input = ['id' => $resource_id];
+                    deleteCourse($input);
+                    break;
+                default:
+                    sendError('Method not allowed', 405);
+            }
             break;
-        case 'addStudent':
-            addStudent($input);
+
+        case 'topics':
+            if ($sub_resource === 'assign' && isset($path_parts[2])) {
+                // Handle special case for assigning teachers to topics
+                if ($method === 'PUT') {
+                    $input['topic_id'] = $path_parts[0];
+                    assignTeacher($input);
+                } else {
+                    sendError('Method not allowed', 405);
+                }
+                break;
+            }
+
+            switch ($method) {
+                case 'GET':
+                    getTopics();
+                    break;
+                case 'POST':
+                    addTopic($input);
+                    break;
+                case 'DELETE':
+                    if ($resource_id === null) {
+                        sendError('Topic ID is required', 400);
+                    }
+                    $input = ['id' => $resource_id];
+                    deleteTopic($input);
+                    break;
+                default:
+                    sendError('Method not allowed', 405);
+            }
             break;
-        case 'updateStudent':
-            updateStudent($input);
-            break;
-        case 'deleteStudent':
-            deleteStudent($input);
-            break;
-        case 'subscribeStudentToTopic':
-            subscribeStudentToTopic($input);
-            break;
-        case 'getTopicStudents':
-            getTopicStudents($_GET);
+
+        case 'students':
+            switch ($method) {
+                case 'GET':
+                    getStudents();
+                    break;
+                case 'POST':
+                    addStudent($input);
+                    break;
+                case 'PUT':
+                    if ($resource_id === null) {
+                        sendError('Student ID is required', 400);
+                    }
+                    $input['id'] = $resource_id;
+                    updateStudent($input);
+                    break;
+                case 'DELETE':
+                    if ($resource_id === null) {
+                        sendError('Student ID is required', 400);
+                    }
+                    $input = ['id' => $resource_id];
+                    deleteStudent($input);
+                    break;
+                default:
+                    sendError('Method not allowed', 405);
+            }
             break;
 
         default:
-            sendError('Invalid action', 400);
+            if (empty($endpoint)) {
+                sendResponse(['message' => 'API is running']);
+            } else {
+                sendError('Endpoint not found', 404);
+            }
     }
 } catch (Exception $e) {
     sendError($e->getMessage(), 500);
