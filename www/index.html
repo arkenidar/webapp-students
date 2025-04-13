@@ -8,8 +8,6 @@
     <link rel="stylesheet" href="styles.css">
     <!-- Vue.js from CDN -->
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
-    <!-- Axios for HTTP requests -->
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
         /* Base styles for SPA */
         body {
@@ -602,24 +600,35 @@
                 // Generic API request method
                 async apiRequest(method, endpoint, data = null) {
                     try {
-                        let config = {
+                        let url = `${API_URL}?action=${endpoint}`;
+                        const options = {
                             method: method,
-                            url: `${API_URL}?action=${endpoint}`,
                             headers: {
                                 'Content-Type': 'application/json'
                             }
                         };
 
-                        if (data) {
-                            if (method === 'get') {
-                                config.params = data;
-                            } else {
-                                config.data = data;
+                        // For GET requests, append data as query parameters
+                        if (method === 'GET' && data) {
+                            const params = new URLSearchParams();
+                            for (const key in data) {
+                                params.append(key, data[key]);
                             }
+                            const queryString = params.toString();
+                            if (queryString) {
+                                url += `&${queryString}`;
+                            }
+                        } 
+                        // For non-GET requests, include data in request body
+                        else if (data) {
+                            options.body = JSON.stringify(data);
                         }
 
-                        const response = await axios(config);
-                        return response.data;
+                        const response = await fetch(url, options);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return await response.json();
                     } catch (error) {
                         console.error(`API Error (${endpoint}):`, error);
                         throw error;
@@ -632,7 +641,7 @@
                 async fetchTeachers() {
                     this.loading.teachers = true;
                     try {
-                        const response = await this.apiRequest('get', 'getTeachers');
+                        const response = await this.apiRequest('GET', 'getTeachers');
                         this.teachers = response.data;
                     } catch (error) {
                         this.showMessage('teachers', 'Error loading teachers', 'error');
@@ -644,7 +653,7 @@
                 // Add a new teacher
                 async addTeacher() {
                     try {
-                        await this.apiRequest('post', 'addTeacher', this.newTeacher);
+                        await this.apiRequest('POST', 'addTeacher', this.newTeacher);
                         this.showMessage('teachers', 'Teacher added successfully', 'success');
                         this.newTeacher = { name: '', email: '' };
                         this.fetchTeachers();
@@ -662,7 +671,7 @@
                 // Update teacher
                 async updateTeacher() {
                     try {
-                        await this.apiRequest('put', 'updateTeacher', this.editingTeacher);
+                        await this.apiRequest('PUT', 'updateTeacher', this.editingTeacher);
                         this.showMessage('teachers', 'Teacher updated successfully', 'success');
                         this.cancelEdit('teachers');
                         this.fetchTeachers();
@@ -675,7 +684,7 @@
                 async deleteTeacher(id) {
                     if (confirm('Are you sure you want to delete this teacher?')) {
                         try {
-                            await this.apiRequest('delete', 'deleteTeacher', { id });
+                            await this.apiRequest('DELETE', 'deleteTeacher', { id });
                             this.showMessage('teachers', 'Teacher deleted successfully', 'success');
                             this.fetchTeachers();
                             this.fetchTopics(); // Refresh topics to update teacher assignments
@@ -691,7 +700,7 @@
                 async fetchCourses() {
                     this.loading.courses = true;
                     try {
-                        const response = await this.apiRequest('get', 'getCourses');
+                        const response = await this.apiRequest('GET', 'getCourses');
                         this.courses = response.data;
                         // Set default course_id for new topics if courses exist
                         if (this.courses.length > 0 && !this.newTopic.course_id) {
@@ -707,7 +716,7 @@
                 // Add a new course
                 async addCourse() {
                     try {
-                        await this.apiRequest('post', 'addCourse', this.newCourse);
+                        await this.apiRequest('POST', 'addCourse', this.newCourse);
                         this.showMessage('courses', 'Course added successfully', 'success');
                         this.newCourse = { name: '' };
                         this.fetchCourses();
@@ -725,7 +734,7 @@
                 // Update course
                 async updateCourse() {
                     try {
-                        await this.apiRequest('put', 'updateCourse', this.editingCourse);
+                        await this.apiRequest('PUT', 'updateCourse', this.editingCourse);
                         this.showMessage('courses', 'Course updated successfully', 'success');
                         this.cancelEdit('courses');
                         this.fetchCourses();
@@ -739,7 +748,7 @@
                 async deleteCourse(id) {
                     if (confirm('Are you sure you want to delete this course? All associated topics will also be deleted.')) {
                         try {
-                            await this.apiRequest('delete', 'deleteCourse', { id });
+                            await this.apiRequest('DELETE', 'deleteCourse', { id });
                             this.showMessage('courses', 'Course deleted successfully', 'success');
                             this.fetchCourses();
                             this.fetchTopics(); // Refresh topics list after deletion
@@ -755,7 +764,7 @@
                 async fetchTopics() {
                     this.loading.topics = true;
                     try {
-                        const response = await this.apiRequest('get', 'getTopics');
+                        const response = await this.apiRequest('GET', 'getTopics');
                         this.topics = response.data;
                         // Set default topic_id for subscriptions if topics exist
                         if (this.topics.length > 0 && !this.newSubscription.topic_id) {
@@ -775,7 +784,7 @@
                 // Add a new topic
                 async addTopic() {
                     try {
-                        await this.apiRequest('post', 'addTopic', this.newTopic);
+                        await this.apiRequest('POST', 'addTopic', this.newTopic);
                         this.showMessage('courses', 'Topic added successfully', 'success');
                         this.newTopic = { title: '', course_id: this.courses.length > 0 ? this.courses[0].id : '' };
                         this.fetchTopics();
@@ -788,7 +797,7 @@
                 async deleteTopic(id) {
                     if (confirm('Are you sure you want to delete this topic?')) {
                         try {
-                            await this.apiRequest('delete', 'deleteTopic', { id });
+                            await this.apiRequest('DELETE', 'deleteTopic', { id });
                             this.showMessage('courses', 'Topic deleted successfully', 'success');
                             this.fetchTopics();
                         } catch (error) {
@@ -800,7 +809,7 @@
                 // Assign a teacher to a topic
                 async assignTeacher(topicId, teacherId) {
                     try {
-                        await this.apiRequest('put', 'assignTeacher', { topic_id: topicId, teacher_id: teacherId });
+                        await this.apiRequest('PUT', 'assignTeacher', { topic_id: topicId, teacher_id: teacherId });
                         this.showMessage('courses', 'Teacher assigned successfully', 'success');
                         this.fetchTopics();
                     } catch (error) {
@@ -814,7 +823,7 @@
                 async fetchStudents() {
                     this.loading.students = true;
                     try {
-                        const response = await this.apiRequest('get', 'getStudents');
+                        const response = await this.apiRequest('GET', 'getStudents');
                         this.students = response.data;
                         // Set default student_id for subscriptions if students exist
                         if (this.students.length > 0 && !this.newSubscription.student_id) {
@@ -830,7 +839,7 @@
                 // Add a new student
                 async addStudent() {
                     try {
-                        await this.apiRequest('post', 'addStudent', this.newStudent);
+                        await this.apiRequest('POST', 'addStudent', this.newStudent);
                         this.showMessage('students', 'Student added successfully', 'success');
                         this.newStudent = { name: '', email: '' };
                         this.fetchStudents();
@@ -848,7 +857,7 @@
                 // Update student
                 async updateStudent() {
                     try {
-                        await this.apiRequest('put', 'updateStudent', this.editingStudent);
+                        await this.apiRequest('PUT', 'updateStudent', this.editingStudent);
                         this.showMessage('students', 'Student updated successfully', 'success');
                         this.cancelEdit('students');
                         this.fetchStudents();
@@ -866,7 +875,7 @@
                 async deleteStudent(id) {
                     if (confirm('Are you sure you want to delete this student?')) {
                         try {
-                            await this.apiRequest('delete', 'deleteStudent', { id });
+                            await this.apiRequest('DELETE', 'deleteStudent', { id });
                             this.showMessage('students', 'Student deleted successfully', 'success');
                             this.fetchStudents();
 
@@ -883,7 +892,7 @@
                 // Subscribe a student to a topic
                 async subscribeStudentToTopic() {
                     try {
-                        await this.apiRequest('post', 'subscribeStudentToTopic', this.newSubscription);
+                        await this.apiRequest('POST', 'subscribeStudentToTopic', this.newSubscription);
                         this.showMessage('students', 'Student subscribed to topic successfully', 'success');
 
                         // If we're viewing the same topic, refresh the view
@@ -900,7 +909,7 @@
                     if (!this.selectedTopicId) return;
 
                     try {
-                        const response = await this.apiRequest('get', 'getTopicStudents', { topic_id: this.selectedTopicId });
+                        const response = await this.apiRequest('GET', 'getTopicStudents', { topic_id: this.selectedTopicId });
                         this.topicStudents = response.data;
 
                         // Find the topic name
